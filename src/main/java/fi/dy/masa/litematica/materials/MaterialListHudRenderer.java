@@ -100,7 +100,8 @@ public class MaterialListHudRenderer implements IInfoHudRenderer
         }
 
         Font font = mc.font;
-        final double scale = Configs.InfoOverlays.MATERIAL_LIST_HUD_SCALE.getDoubleValue();
+        // Forgematica port: compact list (75 % of the configured scale)
+        final double scale = Configs.InfoOverlays.MATERIAL_LIST_HUD_SCALE.getDoubleValue() * 0.75;
         final int maxLines = Configs.InfoOverlays.MATERIAL_LIST_HUD_MAX_LINES.getIntegerValue();
         int bgMargin = 2;
         int lineHeight = 16;
@@ -109,10 +110,10 @@ public class MaterialListHudRenderer implements IInfoHudRenderer
         int maxCountLength = 0;
         int posX = xOffset + bgMargin;
         int posY = yOffset + bgMargin;
-        int bgColor = 0xA0000000;
+        int bgColor = 0x40000000; // Forgematica port: more transparent background
         int textColor = 0xFFFFFFFF;
         boolean useBackground = true;
-        boolean useShadow = false;
+        boolean useShadow = true; // keeps text readable on the transparent background
         final int size = Math.min(list.size(), maxLines);
 
         // Only Chuck Norris can divide by zero
@@ -133,25 +134,11 @@ public class MaterialListHudRenderer implements IInfoHudRenderer
 
         final int maxLineLength = maxTextLength + maxCountLength + 30;
 
-        switch (alignment)
-        {
-            case TOP_RIGHT:
-            case BOTTOM_RIGHT:
-                posX = (int) ((GuiUtils.getScaledWindowWidth() / scale) - maxLineLength - xOffset - bgMargin);
-                break;
-            case CENTER:
-                posX = (int) ((GuiUtils.getScaledWindowWidth() / scale / 2) - (maxLineLength / 2) - xOffset);
-                break;
-            default:
-        }
-
-        if (scale != 1 && scale != 0)
-        {
-            yOffset = (int) (yOffset / scale);
-        }
-
-        posY = RenderUtils.getHudPosY(posY, yOffset, contentHeight, scale, alignment);
-        posY += RenderUtils.getHudOffsetForPotions(alignment, scale, mc.player);
+        // Forgematica port: always draw at the right edge, vertically centered
+        int screenW = (int) (GuiUtils.getScaledWindowWidth() / scale);
+        int screenH = (int) (GuiUtils.getScaledWindowHeight() / scale);
+        posX = screenW - maxLineLength - bgMargin - 2;
+        posY = (screenH - contentHeight) / 2;
 
         if (scale != 1d)
         {
@@ -207,7 +194,7 @@ public class MaterialListHudRenderer implements IInfoHudRenderer
 			ctx.pose().popMatrix();
         }
 
-        return contentHeight + 4;
+        return 0; // positioned independently, does not push other HUD elements
     }
 
     protected String getFormattedCountString(int count, int maxStackSize)
