@@ -16,6 +16,7 @@ public class Forgematica {
         if (FMLLoader.getCurrent().getDist().isClient()) {
             modContainer.registerExtensionPoint(IConfigScreenFactory.class, new ModMenuImpl().getModConfigScreenFactory());
             new Litematica().onInitialize();
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(fi.dy.masa.litematica.command.SchematicCommand::onRegisterCommands);
         }
     }
 }

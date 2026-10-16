@@ -286,6 +286,7 @@ public class GuiSchematicLoad extends GuiSchematicBrowserBase implements ISelect
 									= SchematicPlacement.createFor(schematic, pos, name, enabled, enabled);
 							manager.addSchematicPlacement(placement, true);
 							manager.setSelectedSchematicPlacement(placement);
+							fi.dy.masa.litematica.command.SchematicCommand.showMaterialListHud(placement);
 						}
 					}
 					else if (this.type == Type.MATERIAL_LIST)
