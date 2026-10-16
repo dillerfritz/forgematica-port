@@ -76,6 +76,12 @@ public class SchematicCommand
                 .then(Commands.literal("help").executes(SchematicCommand::help))
                 .then(Commands.literal("list").executes(SchematicCommand::list))
                 .then(Commands.literal("materials").executes(SchematicCommand::materials))
+                .then(Commands.literal("performance").executes(ctx -> team.cagayakegirls.forgematica.PerformancePreset.applyCommand()))
+                .then(Commands.literal("share").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareSelected()))
+                .then(Commands.literal("unshare").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.unshareSelected()))
+                .then(Commands.literal("teamsync")
+                        .then(Commands.literal("on").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.setReceiveEnabled(true)))
+                        .then(Commands.literal("off").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.setReceiveEnabled(false))))
                 .then(Commands.literal("download")
                         .then(Commands.argument("link", StringArgumentType.greedyString())
                                 .executes(SchematicCommand::download)))
@@ -98,6 +104,14 @@ public class SchematicCommand
                 .append(Component.literal(" - lädt die Schematic an deiner Position + Materialliste").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic materials").withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Materialliste ein-/ausblenden").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic share").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - ausgewählte Schematic (erneut) mit deinem Team teilen").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic unshare").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - Teilen beenden, Team sieht sie nicht mehr").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic teamsync on|off").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - geteilte Schematics vom Team empfangen an/aus").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic performance").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - Einstellungen für flüssiges Spielen setzen").withStyle(ChatFormatting.GRAY)));
         return 1;
     }
 
@@ -251,27 +265,8 @@ public class SchematicCommand
             return 0;
         }
 
-        Path dir = file.getParent();
         String fileName = file.getFileName().toString();
-        FileType type = FileType.fromFile(file);
-        LitematicaSchematic schematic;
-
-        try
-        {
-            schematic = switch (type)
-            {
-                case LITEMATICA_SCHEMATIC -> LitematicaSchematic.createFromFile(dir, fileName);
-                case SCHEMATICA_SCHEMATIC -> WorldUtils.convertSchematicaSchematicToLitematicaSchematic(dir, fileName, false, s -> {});
-                case VANILLA_STRUCTURE -> WorldUtils.convertStructureToLitematicaSchematic(dir, fileName);
-                case SPONGE_SCHEMATIC -> WorldUtils.convertSpongeSchematicToLitematicaSchematic(dir, fileName);
-                default -> null;
-            };
-        }
-        catch (Exception e)
-        {
-            Litematica.LOGGER.warn("Schematic load failed: {}", e.toString());
-            schematic = null;
-        }
+        LitematicaSchematic schematic = readSchematic(file);
 
         if (schematic == null)
         {
@@ -288,11 +283,40 @@ public class SchematicCommand
         manager.setSelectedSchematicPlacement(placement);
 
         showMaterialListHud(placement);
+        team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareIfInTeam(placement);
 
         msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(fileName + " platziert bei " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
                         + ". Materialliste wird am Rand angezeigt.").withStyle(ChatFormatting.GREEN)));
         return 1;
+    }
+
+    /**
+     * Reads any supported schematic file (litematic / schem / schematic / nbt). Returns null on failure.
+     */
+    @org.jetbrains.annotations.Nullable
+    public static LitematicaSchematic readSchematic(Path file)
+    {
+        Path dir = file.getParent();
+        String fileName = file.getFileName().toString();
+        FileType type = FileType.fromFile(file);
+
+        try
+        {
+            return switch (type)
+            {
+                case LITEMATICA_SCHEMATIC -> LitematicaSchematic.createFromFile(dir, fileName);
+                case SCHEMATICA_SCHEMATIC -> WorldUtils.convertSchematicaSchematicToLitematicaSchematic(dir, fileName, false, s -> {});
+                case VANILLA_STRUCTURE -> WorldUtils.convertStructureToLitematicaSchematic(dir, fileName);
+                case SPONGE_SCHEMATIC -> WorldUtils.convertSpongeSchematicToLitematicaSchematic(dir, fileName);
+                default -> null;
+            };
+        }
+        catch (Exception e)
+        {
+            Litematica.LOGGER.warn("Schematic load failed: {}", e.toString());
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------ materials
@@ -363,7 +387,7 @@ public class SchematicCommand
 
     // ------------------------------------------------------------------ helpers
 
-    private static Path baseDir()
+    public static Path baseDir()
     {
         Path dir = DataManager.getSchematicsBaseDirectory().toAbsolutePath().normalize();
 
@@ -462,7 +486,7 @@ public class SchematicCommand
         Minecraft.getInstance().execute(task);
     }
 
-    private static void msg(Component component)
+    public static void msg(Component component)
     {
         Minecraft mc = Minecraft.getInstance();
 
@@ -472,13 +496,13 @@ public class SchematicCommand
         }
     }
 
-    private static void info(String text)
+    public static void info(String text)
     {
         msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(text).withStyle(ChatFormatting.WHITE)));
     }
 
-    private static void error(String text)
+    public static void error(String text)
     {
         msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(text).withStyle(ChatFormatting.RED)));

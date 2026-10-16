@@ -1,0 +1,24 @@
+plugins {
+	id 'team.cagayakegirls.scripts'
+	id 'dev.architectury.loom-no-remap'
+}
+
+base {
+	archivesName = "forgematica-teamsync-server"
+	version = "1.0.0+mc${rootProject.minecraft_version_out}"
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+	neoForge "net.neoforged:neoforge:${rootProject.neoforge_version}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	it.options.release = 25
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}

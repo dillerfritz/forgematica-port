@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="LGPLv3"
+
+[[mods]]
+modId="forgematica_teamsync"
+version="1.0.0"
+displayName="Forgematica TeamSync (Server)"
+authors="Forgematica-Port"
+description='''
+Server-side companion for the Forgematica 26.3 port: forwards shared schematics to the members of the sender's team.
+Install ONLY on the dedicated server.
+'''
+
+[[dependencies.forgematica_teamsync]]
+modId="neoforge"
+type="required"
+versionRange="[26.3,)"
+ordering="NONE"
+side="SERVER"
+
+[[dependencies.forgematica_teamsync]]
+modId="minecraft"
+type="required"
+versionRange="[26.3,)"
+ordering="NONE"
+side="SERVER"

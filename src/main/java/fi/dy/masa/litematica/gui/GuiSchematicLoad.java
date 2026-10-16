@@ -287,6 +287,7 @@ public class GuiSchematicLoad extends GuiSchematicBrowserBase implements ISelect
 							manager.addSchematicPlacement(placement, true);
 							manager.setSelectedSchematicPlacement(placement);
 							fi.dy.masa.litematica.command.SchematicCommand.showMaterialListHud(placement);
+							team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareIfInTeam(placement);
 						}
 					}
 					else if (this.type == Type.MATERIAL_LIST)
