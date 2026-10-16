@@ -2,7 +2,11 @@ name: build
 
 on:
   push:
+    branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -37,7 +41,8 @@ jobs:
       - name: build Forgematica
         run: |
           chmod +x ./gradlew
-          ./gradlew build --stacktrace
+          set -o pipefail
+          ./gradlew build --stacktrace 2>&1 | tee build.log
 
       - name: collect jars
         run: |
@@ -52,3 +57,15 @@ jobs:
         with:
           name: forgematica-26.3-jars
           path: out/
+
+      - name: publish build log on failure
+        if: failure()
+        run: |
+          mkdir -p /tmp/logs && cp build.log /tmp/logs/ 2>/dev/null || true
+          cp mafglib/build.log /tmp/logs/ 2>/dev/null || true
+          cd /tmp/logs
+          git init -q -b ci-logs
+          git config user.name ci
+          git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "build log ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" ci-logs
