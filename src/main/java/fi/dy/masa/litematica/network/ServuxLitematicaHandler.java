@@ -14,7 +14,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.util.Util;
 //import net.fabricmc.api.EnvType;
 //import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import fi.dy.masa.malilib.gui.Message;
 import fi.dy.masa.malilib.network.IClientPayloadData;
@@ -30,14 +30,7 @@ import fi.dy.masa.litematica.data.EntityDataManager;
 //@Environment(EnvType.CLIENT)
 public abstract class ServuxLitematicaHandler<T extends CustomPacketPayload> implements IPluginClientPlayHandler<T>
 {
-    private final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>()
-    {
-        @Override
-        public void receive(ServuxLitematicaPacket.@NonNull Payload payload, ClientPlayNetworking.@NonNull Context context)
-        {
-            ServuxLitematicaHandler.INSTANCE.receivePlayPayload(payload, context);
-        }
-    };
+    private final static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> INSTANCE = new ServuxLitematicaHandler<>() {};
     public static ServuxLitematicaHandler<ServuxLitematicaPacket.Payload> getInstance() { return INSTANCE; }
 
     public static final Identifier CHANNEL_ID = Identifier.fromNamespaceAndPath("servux", "litematics");
@@ -214,7 +207,7 @@ public abstract class ServuxLitematicaHandler<T extends CustomPacketPayload> imp
     }
 
     @Override
-    public void receivePlayPayload(T payload, ClientPlayNetworking.Context ctx)
+    public void receivePlayPayload(T payload, IPayloadContext ctx)
     {
         if (payload.type().id().equals(CHANNEL_ID))
         {
