@@ -1,0 +1,30 @@
+plugins {
+	id 'java'
+}
+
+base {
+	archivesName = "forgematica-teamsync-paper"
+	version = "1.0.0+mc26.3"
+}
+
+repositories {
+	maven { name = 'papermc'; url = 'https://repo.papermc.io/repository/maven-public/' }
+	mavenCentral()
+}
+
+dependencies {
+	compileOnly "io.papermc.paper:paper-api:26.3.build.+"
+}
+
+java {
+	toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = "UTF-8"
+	it.options.release = 25
+}
+
+processResources {
+	filteringCharset = 'UTF-8'
+}

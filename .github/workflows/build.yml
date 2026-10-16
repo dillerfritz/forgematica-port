@@ -50,6 +50,7 @@ jobs:
           cp build/libs/*.jar out/
           cp mafglib/build/libs/*.jar out/
           cp teamsync-server/build/libs/*.jar out/
+          cp teamsync-paper/build/libs/*.jar out/
           # FoxifiedClassTweaker (required by MaFgLib) for 26.3 from Modrinth
           curl -sSL "https://api.modrinth.com/v2/project/foxifiedclasstweaker/version?game_versions=%5B%2226.3%22%5D&loaders=%5B%22neoforge%22%5D" -o fct.json
           URL=$(python3 -c "import json;v=json.load(open('fct.json'));print(v[0]['files'][0]['url'])")

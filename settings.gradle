@@ -13,3 +13,4 @@ pluginManagement {
 }
 
 include 'teamsync-server'
+include 'teamsync-paper'

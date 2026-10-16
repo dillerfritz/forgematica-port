@@ -86,7 +86,7 @@ public final class TeamSyncClient
 
         if (!serverSupportsSync())
         {
-            SchematicCommand.error("Der Server hat die Forgematica-TeamSync-Mod nicht installiert.");
+            SchematicCommand.error("Auf dem Server fehlt Forgematica TeamSync (Paper: Plugin in den plugins-Ordner, NeoForge: Server-Mod in den mods-Ordner).");
             return 0;
         }
 
