@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout forgematica-port
+        uses: actions/checkout@v4
+
+      - name: setup jdk 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # MaFgLib (required library) for 26.3, built from the CagayakeGirls source
+      - name: checkout MaFgLib 26.3
+        uses: actions/checkout@v4
+        with:
+          repository: CagayakeGirls/malilib-neoforge
+          ref: c4a6e202c22e25f386e94d2adfd3b090a288be31
+          path: mafglib
+
+      - name: build MaFgLib and install to local maven
+        working-directory: mafglib
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build publishToMavenLocal --stacktrace
+
+      - name: build Forgematica
+        run: |
+          chmod +x ./gradlew
+          ./gradlew build --stacktrace
+
+      - name: collect jars
+        run: |
+          mkdir -p out
+          cp build/libs/*.jar out/
+          cp mafglib/build/libs/*.jar out/
+          rm -f out/*-sources.jar out/*-dev*.jar
+          ls -la out
+
+      - name: upload jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: forgematica-26.3-jars
+          path: out/
