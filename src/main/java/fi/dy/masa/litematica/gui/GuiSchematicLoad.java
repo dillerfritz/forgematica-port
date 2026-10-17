@@ -272,22 +272,16 @@ public class GuiSchematicLoad extends GuiSchematicBrowserBase implements ISelect
 				{
 					if (this.type == Type.LOAD_SCHEMATIC)
 					{
-						SchematicHolder.getInstance().addSchematic(schematic, true);
 						this.gui.addMessage(MessageType.SUCCESS, "litematica.info.schematic_load.schematic_loaded", file.getFileName());
 
-						if (DataManager.getCreatePlacementOnLoad() && this.gui.mc.player != null)
+						if (this.gui.mc.player != null)
 						{
-							BlockPos pos = BlockPos.containing(this.gui.mc.player.position());
-							String name = schematic.getMetadata().getName();
-							boolean enabled = GuiBase.isShiftDown() == false;
-
-							SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-							SchematicPlacement placement
-									= SchematicPlacement.createFor(schematic, pos, name, enabled, enabled);
-							manager.addSchematicPlacement(placement, true);
-							manager.setSelectedSchematicPlacement(placement);
-							fi.dy.masa.litematica.command.SchematicCommand.showMaterialListHud(placement);
-							team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareIfInTeam(placement);
+							fi.dy.masa.litematica.command.SchematicCommand.placeNewSchematic(schematic, file.getFileName().toString());
+							GuiBase.openGui(null); // close the menu so the schematic can be positioned
+						}
+						else
+						{
+							SchematicHolder.getInstance().addSchematic(schematic, true);
 						}
 					}
 					else if (this.type == Type.MATERIAL_LIST)

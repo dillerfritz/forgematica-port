@@ -78,6 +78,10 @@ public class SchematicCommand
                 .then(Commands.literal("materials").executes(SchematicCommand::materials))
                 .then(Commands.literal("performance").executes(ctx -> team.cagayakegirls.forgematica.PerformancePreset.applyCommand()))
                 .then(Commands.literal("share").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareSelected()))
+                .then(Commands.literal("accept").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.acceptAll()))
+                .then(Commands.literal("decline").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.declineAll()))
+                .then(Commands.literal("move").executes(ctx -> { team.cagayakegirls.forgematica.ux.MoveMode.toggle(); return 1; }))
+                .then(Commands.literal("menu").executes(ctx -> { Minecraft.getInstance().execute(() -> fi.dy.masa.malilib.gui.GuiBase.openGui(new team.cagayakegirls.forgematica.ux.SimpleMenu())); return 1; }))
                 .then(Commands.literal("unshare").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.unshareSelected()))
                 .then(Commands.literal("teamsync")
                         .then(Commands.literal("on").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.setReceiveEnabled(true)))
@@ -106,6 +110,10 @@ public class SchematicCommand
                 .append(Component.literal(" - Materialliste ein-/ausblenden").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic share").withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - ausgewählte Schematic (erneut) mit deinem Team teilen").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic accept | decline").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - alle Team-Angebote annehmen / ablehnen").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic move").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - ausgewählte Schematic verschieben (wie Taste)").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic unshare").withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - Teilen beenden, Team sieht sie nicht mehr").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic teamsync on|off").withStyle(ChatFormatting.YELLOW)
@@ -274,20 +282,7 @@ public class SchematicCommand
             return 0;
         }
 
-        SchematicHolder.getInstance().addSchematic(schematic, true);
-
-        BlockPos pos = BlockPos.containing(mc.player.position());
-        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-        SchematicPlacement placement = SchematicPlacement.createFor(schematic, pos, schematic.getMetadata().getName(), true, true);
-        manager.addSchematicPlacement(placement, true);
-        manager.setSelectedSchematicPlacement(placement);
-
-        showMaterialListHud(placement);
-        team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareIfInTeam(placement);
-
-        msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
-                .append(Component.literal(fileName + " platziert bei " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
-                        + ". Materialliste wird am Rand angezeigt.").withStyle(ChatFormatting.GREEN)));
+        placeNewSchematic(schematic, fileName);
         return 1;
     }
 
@@ -323,28 +318,74 @@ public class SchematicCommand
 
     private static int materials(CommandContext<CommandSourceStack> ctx)
     {
+        return toggleMaterialList(false);
+    }
+
+    /**
+     * Adds a freshly loaded schematic in front of the player, shows the material list,
+     * shares it with the team and starts the move mode so it can be positioned.
+     */
+    public static SchematicPlacement placeNewSchematic(LitematicaSchematic schematic, String fileName)
+    {
+        SchematicHolder.getInstance().addSchematic(schematic, true);
+
+        BlockPos pos = team.cagayakegirls.forgematica.ux.MoveMode.targetPosition();
+        SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
+        SchematicPlacement placement = SchematicPlacement.createFor(schematic, pos, schematic.getMetadata().getName(), true, true);
+        manager.addSchematicPlacement(placement, true);
+        manager.setSelectedSchematicPlacement(placement);
+
+        showMaterialListHud(placement);
+        team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareIfInTeam(placement);
+        team.cagayakegirls.forgematica.ux.MoveMode.start(placement);
+
+        msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal(fileName + " platziert. Jetzt mit den Pfeiltasten ausrichten, Enter = fertig.").withStyle(ChatFormatting.GREEN)));
+        return placement;
+    }
+
+    /** Shows / hides the material list of the selected placement. */
+    public static int toggleMaterialList(boolean actionBar)
+    {
         SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
 
         if (placement == null)
         {
-            error("Keine Schematic ausgewählt. Erst mit /schematic load <Name> laden.");
+            error("Keine Schematic ausgewählt.");
             return 0;
         }
 
         MaterialListBase list = DataManager.getMaterialList();
+        boolean show = !(list != null && list.getHudRenderer().getShouldRenderCustom());
 
-        if (list != null && list.getHudRenderer().getShouldRenderCustom())
+        if (show)
         {
-            hideMaterialListHud(list);
-            info("Materialliste ausgeblendet.");
+            showMaterialListHud(placement);
         }
         else
         {
-            showMaterialListHud(placement);
-            info("Materialliste eingeblendet.");
+            hideMaterialListHud(list);
+        }
+
+        String text = show ? "Materialliste eingeblendet" : "Materialliste ausgeblendet";
+        Minecraft mc = Minecraft.getInstance();
+
+        if (actionBar && mc.player != null)
+        {
+            mc.player.sendOverlayMessage(Component.literal(text));
+        }
+        else
+        {
+            info(text + ".");
         }
 
         return 1;
+    }
+
+    public static boolean isMaterialListShown()
+    {
+        MaterialListBase list = DataManager.getMaterialList();
+        return list != null && list.getHudRenderer().getShouldRenderCustom();
     }
 
     /**
@@ -373,7 +414,7 @@ public class SchematicCommand
         }
     }
 
-    private static void hideMaterialListHud(MaterialListBase list)
+    public static void hideMaterialListHud(MaterialListBase list)
     {
         MaterialListHudRenderer renderer = list.getHudRenderer();
 

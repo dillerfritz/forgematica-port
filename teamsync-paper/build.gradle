@@ -4,7 +4,7 @@ plugins {
 
 base {
 	archivesName = "forgematica-teamsync-paper"
-	version = "1.0.0+mc26.3"
+	version = "1.1.0+mc26.3"
 }
 
 repositories {

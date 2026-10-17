@@ -27,6 +27,9 @@ public class Forgematica {
             NeoForge.EVENT_BUS.addListener(SchematicCommand::onRegisterCommands);
             NeoForge.EVENT_BUS.addListener(TeamSyncClient::onClientTick);
             NeoForge.EVENT_BUS.addListener(PerformancePreset::onClientTick);
+            NeoForge.EVENT_BUS.addListener(team.cagayakegirls.forgematica.ux.UxPreset::onClientTick);
+            NeoForge.EVENT_BUS.addListener(team.cagayakegirls.forgematica.ux.FmKeys::onClientTick);
+            modBus.addListener(team.cagayakegirls.forgematica.ux.FmKeys::onRegister);
             modBus.addListener(Forgematica::registerPayloads);
         }
     }

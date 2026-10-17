@@ -319,7 +319,7 @@ public class KeyCallbacks
             }
             else if (key == Hotkeys.OPEN_GUI_MAIN_MENU.getKeybind())
             {
-                GuiBase.openGui(new GuiMainMenu());
+                GuiBase.openGui(new team.cagayakegirls.forgematica.ux.SimpleMenu());
                 return true;
             }
             else if (key == Hotkeys.OPEN_GUI_LOADED_SCHEMATICS.getKeybind())

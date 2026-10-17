@@ -1,0 +1,20 @@
+{
+  "key.category.forgematica.main": "Forgematica",
+  "key.categories.forgematica.main": "Forgematica",
+  "key.category.forgematica": "Forgematica",
+  "key.categories.forgematica.main.name": "Forgematica",
+  "key.forgematica.open_menu": "Menü öffnen",
+  "key.forgematica.material_list": "Materialliste ein/aus",
+  "key.forgematica.move_mode": "Schematic verschieben (an/aus)",
+  "key.forgematica.toggle_rendering": "Schematics ein-/ausblenden",
+  "key.forgematica.move_forward": "Verschieben: vorwärts",
+  "key.forgematica.move_back": "Verschieben: zurück",
+  "key.forgematica.move_left": "Verschieben: links",
+  "key.forgematica.move_right": "Verschieben: rechts",
+  "key.forgematica.move_up": "Verschieben: hoch",
+  "key.forgematica.move_down": "Verschieben: runter",
+  "key.forgematica.rotate": "Verschieben: drehen",
+  "key.forgematica.mirror": "Verschieben: spiegeln",
+  "key.forgematica.confirm": "Verschieben: fertig",
+  "key.forgematica.cancel": "Verschieben: abbrechen"
+}

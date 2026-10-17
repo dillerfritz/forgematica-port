@@ -4,11 +4,20 @@ import java.io.ByteArrayOutputStream;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.bukkit.scoreboard.Scoreboard;
@@ -21,19 +30,50 @@ import org.bukkit.scoreboard.Team;
  * to all online members of the sender's scoreboard team (/team). The byte format must match
  * TeamSyncPayload in Forgematica (Minecraft FriendlyByteBuf encoding).
  */
-public final class ForgematicaTeamSyncPlugin extends JavaPlugin implements PluginMessageListener
+public final class ForgematicaTeamSyncPlugin extends JavaPlugin implements PluginMessageListener, Listener
 {
     public static final String CHANNEL = "forgematica:team_sync";
 
     private static final byte ACTION_CHUNK = 0;
     private static final int MAX_CHUNK_BYTES = 30000;
     private static final int MAX_CHUNKS = 1000;
+    private static final byte ACTION_MOVE = 1;
+    private static final byte ACTION_REMOVE = 2;
+    /** Max. memory used for remembering shared schematics (for players who join later). */
+    private static final long MAX_CACHE_BYTES = 200L * 1024L * 1024L;
+
+    /** shareId -> remembered share, oldest first */
+    private final Map<UUID, Cached> cache = new LinkedHashMap<>();
+    private long cacheBytes;
+
+    private static final class Cached
+    {
+        final String team;
+        final String sender;
+        final byte[][] chunks;
+        byte[] lastMove;
+        long bytes;
+
+        Cached(String team, String sender, int count)
+        {
+            this.team = team;
+            this.sender = sender;
+            this.chunks = new byte[count][];
+        }
+
+        boolean complete()
+        {
+            for (byte[] c : this.chunks) if (c == null) return false;
+            return true;
+        }
+    }
 
     @Override
     public void onEnable()
     {
         this.getServer().getMessenger().registerIncomingPluginChannel(this, CHANNEL, this);
         this.getServer().getMessenger().registerOutgoingPluginChannel(this, CHANNEL);
+        this.getServer().getPluginManager().registerEvents(this, this);
         this.getLogger().info("Forgematica TeamSync aktiv (Kanal " + CHANNEL + ")");
     }
 
@@ -84,6 +124,7 @@ public final class ForgematicaTeamSyncPlugin extends JavaPlugin implements Plugi
 
         packet.sender = sender.getName();
         byte[] relayed = packet.write();
+        this.remember(packet, relayed, team.getName());
         int recipients = 0;
 
         for (Player other : Bukkit.getOnlinePlayers())
@@ -107,6 +148,126 @@ public final class ForgematicaTeamSyncPlugin extends JavaPlugin implements Plugi
         {
             sender.sendMessage(Component.text("[Forgematica] Wird mit " + recipients
                     + " Teammitglied(ern) im Team \"" + team.getName() + "\" geteilt.", NamedTextColor.GREEN));
+        }
+    }
+
+    // ------------------------------------------------------------------ late joiners
+
+    private void remember(Packet packet, byte[] relayed, String teamName)
+    {
+        UUID id = new UUID(packet.uuidMost, packet.uuidLeast);
+
+        if (packet.action == ACTION_REMOVE)
+        {
+            this.forget(id);
+            return;
+        }
+
+        Cached c = this.cache.get(id);
+
+        if (packet.action == ACTION_MOVE)
+        {
+            if (c != null)
+            {
+                c.lastMove = relayed;
+            }
+            return;
+        }
+
+        if (packet.count <= 0 || packet.index >= packet.count)
+        {
+            return;
+        }
+
+        if (c == null || packet.index == 0 || c.chunks.length != packet.count)
+        {
+            this.forget(id);
+            c = new Cached(teamName, packet.sender, packet.count);
+            this.cache.put(id, c);
+        }
+
+        if (c.chunks[packet.index] == null)
+        {
+            c.chunks[packet.index] = relayed;
+            c.bytes += relayed.length;
+            this.cacheBytes += relayed.length;
+        }
+
+        // Drop the oldest shares when using too much memory
+        Iterator<Map.Entry<UUID, Cached>> it = this.cache.entrySet().iterator();
+
+        while (this.cacheBytes > MAX_CACHE_BYTES && it.hasNext())
+        {
+            Map.Entry<UUID, Cached> e = it.next();
+
+            if (e.getKey().equals(id))
+            {
+                continue;
+            }
+
+            this.cacheBytes -= e.getValue().bytes;
+            it.remove();
+        }
+    }
+
+    private void forget(UUID id)
+    {
+        Cached old = this.cache.remove(id);
+
+        if (old != null)
+        {
+            this.cacheBytes -= old.bytes;
+        }
+    }
+
+    /** A Forgematica client opened the channel (= joined): send it the shares of its team. */
+    @EventHandler
+    public void onRegisterChannel(PlayerRegisterChannelEvent event)
+    {
+        if (!CHANNEL.equals(event.getChannel()))
+        {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(this, () -> this.sendCachedTo(player), 40L);
+    }
+
+    private void sendCachedTo(Player player)
+    {
+        if (!player.isOnline())
+        {
+            return;
+        }
+
+        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+
+        if (team == null)
+        {
+            return;
+        }
+
+        List<Cached> toSend = new ArrayList<>();
+
+        for (Cached c : this.cache.values())
+        {
+            if (c.team.equals(team.getName()) && !c.sender.equals(player.getName()) && c.complete())
+            {
+                toSend.add(c);
+            }
+        }
+
+        for (Cached c : toSend)
+        {
+            for (byte[] chunk : c.chunks)
+            {
+                player.sendPluginMessage(this, CHANNEL, chunk);
+            }
+
+            if (c.lastMove != null)
+            {
+                player.sendPluginMessage(this, CHANNEL, c.lastMove);
+            }
         }
     }
 

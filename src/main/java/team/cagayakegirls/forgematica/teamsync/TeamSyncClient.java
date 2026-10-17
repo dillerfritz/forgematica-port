@@ -43,6 +43,8 @@ public final class TeamSyncClient
     private static final Map<SchematicPlacement, OwnShare> OWN = new HashMap<>();
     /** Placements received from teammates: shareId -> placement */
     private static final Map<UUID, SchematicPlacement> RECEIVED = new HashMap<>();
+    /** Received but not yet accepted: shareId -> offer */
+    private static final Map<UUID, Offer> OFFERS = new java.util.LinkedHashMap<>();
     /** Incomplete incoming transfers */
     private static final Map<UUID, Transfer> TRANSFERS = new HashMap<>();
 
@@ -111,6 +113,8 @@ public final class TeamSyncClient
         }
 
         sendRemove(share.id);
+        ownIds().values().remove(share.id);
+        saveOwnIds();
         SchematicCommand.info("Teilen beendet. Dein Team sieht diese Schematic nicht mehr.");
         return 1;
     }
@@ -158,6 +162,8 @@ public final class TeamSyncClient
         UUID id = existing != null ? existing.id : UUID.randomUUID();
         OwnShare state = OwnShare.of(id, placement);
         OWN.put(placement, state);
+        ownIds().put(ownKey(placement), id);
+        saveOwnIds();
 
         String fileName = file.getFileName().toString();
 
@@ -196,7 +202,7 @@ public final class TeamSyncClient
      */
     public static void onClientTick(ClientTickEvent.Post event)
     {
-        if (OWN.isEmpty() || ++tickCounter < 10)
+        if (++tickCounter < 10)
         {
             return;
         }
@@ -208,6 +214,14 @@ public final class TeamSyncClient
             OWN.clear();
             RECEIVED.clear();
             TRANSFERS.clear();
+            OFFERS.clear();
+            return;
+        }
+
+        restoreOwnShares();
+
+        if (OWN.isEmpty())
+        {
             return;
         }
 
@@ -222,6 +236,8 @@ public final class TeamSyncClient
             if (!manager.getAllSchematicsPlacements().contains(placement))
             {
                 sendRemove(entry.getValue().id);
+                ownIds().values().remove(entry.getValue().id);
+                saveOwnIds();
                 it.remove();
                 continue;
             }
@@ -319,73 +335,373 @@ public final class TeamSyncClient
             return;
         }
 
-        LitematicaSchematic schematic = SchematicCommand.readSchematic(file);
+        Offer offer = new Offer(p.shareId(), p.sender(), fileName, file, p.x(), p.y(), p.z(), p.rotation(), p.mirror());
+
+        // Already accepted earlier (also after a relog): update silently
+        if (RECEIVED.containsKey(p.shareId()) || isAcceptedBefore(p.shareId()))
+        {
+            apply(offer, false);
+            return;
+        }
+
+        OFFERS.put(p.shareId(), offer);
+        notifyOffer(offer);
+    }
+
+    private static void notifyOffer(Offer offer)
+    {
+        Minecraft mc = Minecraft.getInstance();
+        String key = team.cagayakegirls.forgematica.ux.FmKeys.OPEN_MENU.getTranslatedKeyMessage().getString();
+
+        SchematicCommand.msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal(offer.sender + " möchte \"" + offer.fileName + "\" mit dir teilen. ").withStyle(ChatFormatting.AQUA))
+                .append(Component.literal("Annehmen: Taste " + key + " → \"Team-Angebote\"  oder  /schematic accept").withStyle(ChatFormatting.YELLOW)));
+
+        if (mc.player != null)
+        {
+            mc.player.sendOverlayMessage(Component.literal("📨 Neues Team-Angebot von " + offer.sender + " – Taste " + key + " drücken")
+                    .withStyle(ChatFormatting.AQUA));
+        }
+    }
+
+    /** Turns an offer into a (locked) placement. */
+    private static void apply(Offer offer, boolean announce)
+    {
+        LitematicaSchematic schematic = SchematicCommand.readSchematic(offer.file);
 
         if (schematic == null)
         {
-            SchematicCommand.error(p.sender() + " hat eine Schematic geteilt, die nicht gelesen werden konnte.");
+            SchematicCommand.error(offer.sender + " hat eine Schematic geteilt, die nicht gelesen werden konnte.");
             return;
         }
 
         SchematicPlacementManager manager = DataManager.getSchematicPlacementManager();
-        SchematicPlacement old = RECEIVED.remove(p.shareId());
+        SchematicPlacement old = RECEIVED.remove(offer.id);
 
         if (old != null)
         {
             manager.removeSchematicPlacement(old);
         }
 
-        SchematicHolder.getInstance().addSchematic(schematic, true);
-        BlockPos origin = new BlockPos(p.x(), p.y(), p.z());
-        String name = schematic.getMetadata().getName() + " (" + p.sender() + ")";
-        SchematicPlacement placement = SchematicPlacement.createFor(schematic, origin, name, true, true);
-        manager.addSchematicPlacement(placement, true);
-        applyTransform(placement, p);
-        manager.setSelectedSchematicPlacement(placement);
-        RECEIVED.put(p.shareId(), placement);
+        // Placements restored by Litematica after a relog point to the same team file: replace them
+        for (SchematicPlacement existing : new java.util.ArrayList<>(manager.getAllSchematicsPlacements()))
+        {
+            if (offer.file.equals(existing.getSchematicFile()))
+            {
+                manager.removeSchematicPlacement(existing);
+            }
+        }
 
-        SchematicCommand.showMaterialListHud(placement);
-        SchematicCommand.msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
-                .append(Component.literal(p.sender() + " hat \"" + fileName + "\" mit dem Team geteilt (bei "
-                        + p.x() + " " + p.y() + " " + p.z() + ").").withStyle(ChatFormatting.GREEN)));
+        SchematicHolder.getInstance().addSchematic(schematic, true);
+        String name = schematic.getMetadata().getName() + " (" + offer.sender + ")";
+        SchematicPlacement placement = SchematicPlacement.createFor(schematic, new BlockPos(offer.x, offer.y, offer.z), name, true, true);
+        manager.addSchematicPlacement(placement, true);
+        applyTransform(placement, offer.rotation, offer.mirror);
+        team.cagayakegirls.forgematica.ux.MoveMode.setLocked(placement, true);
+        RECEIVED.put(offer.id, placement);
+        rememberAccepted(offer.id);
+
+        if (announce)
+        {
+            manager.setSelectedSchematicPlacement(placement);
+            SchematicCommand.showMaterialListHud(placement);
+            SchematicCommand.msg(Component.literal("[Forgematica] ").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal("\"" + offer.fileName + "\" von " + offer.sender + " angenommen (bei "
+                            + offer.x + " " + offer.y + " " + offer.z + ").").withStyle(ChatFormatting.GREEN)));
+        }
+    }
+
+    // ------------------------------------------------------------------ offers API (menu / commands)
+
+    public static java.util.List<Offer> getOffers()
+    {
+        return new java.util.ArrayList<>(OFFERS.values());
+    }
+
+    public static int getOfferCount()
+    {
+        return OFFERS.size();
+    }
+
+    public static void accept(UUID id)
+    {
+        Offer offer = OFFERS.remove(id);
+
+        if (offer != null)
+        {
+            apply(offer, true);
+        }
+    }
+
+    public static void decline(UUID id)
+    {
+        Offer offer = OFFERS.remove(id);
+
+        if (offer != null)
+        {
+            SchematicCommand.info("Angebot \"" + offer.fileName + "\" von " + offer.sender + " abgelehnt.");
+        }
+    }
+
+    public static int acceptAll()
+    {
+        if (OFFERS.isEmpty())
+        {
+            SchematicCommand.info("Keine offenen Team-Angebote.");
+            return 0;
+        }
+
+        for (UUID id : new java.util.ArrayList<>(OFFERS.keySet()))
+        {
+            accept(id);
+        }
+
+        return 1;
+    }
+
+    public static int declineAll()
+    {
+        if (OFFERS.isEmpty())
+        {
+            SchematicCommand.info("Keine offenen Team-Angebote.");
+            return 0;
+        }
+
+        for (UUID id : new java.util.ArrayList<>(OFFERS.keySet()))
+        {
+            decline(id);
+        }
+
+        return 1;
+    }
+
+    /** Hides a received schematic again (it can be re-offered by the owner). */
+    public static void forget(SchematicPlacement placement)
+    {
+        RECEIVED.values().remove(placement);
+        DataManager.getSchematicPlacementManager().removeSchematicPlacement(placement);
+    }
+
+    public static boolean isReceived(SchematicPlacement placement)
+    {
+        return RECEIVED.containsValue(placement);
+    }
+
+    public static boolean isShared(SchematicPlacement placement)
+    {
+        return OWN.containsKey(placement);
+    }
+
+    // ------------------------------------------------------------------ persisted own share ids (survive relogs)
+
+    private static Map<String, UUID> ownIds;
+
+    private static String ownKey(SchematicPlacement p)
+    {
+        return String.valueOf(p.getSchematicFile()) + "|" + p.getName();
+    }
+
+    private static Path ownFile()
+    {
+        return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("forgematica-team-own.txt");
+    }
+
+    private static Map<String, UUID> ownIds()
+    {
+        if (ownIds == null)
+        {
+            ownIds = new java.util.LinkedHashMap<>();
+
+            try
+            {
+                if (Files.exists(ownFile()))
+                {
+                    for (String line : Files.readAllLines(ownFile()))
+                    {
+                        int tab = line.indexOf('\t');
+                        if (tab > 0)
+                        {
+                            try { ownIds.put(line.substring(tab + 1), UUID.fromString(line.substring(0, tab))); }
+                            catch (IllegalArgumentException ignored) {}
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Litematica.LOGGER.warn("TeamSync: could not read own share list: {}", e.toString());
+            }
+        }
+
+        return ownIds;
+    }
+
+    private static void saveOwnIds()
+    {
+        try
+        {
+            java.util.List<String> lines = new java.util.ArrayList<>();
+            for (Map.Entry<String, UUID> e : ownIds().entrySet()) lines.add(e.getValue() + "\t" + e.getKey());
+            Files.write(ownFile(), lines);
+        }
+        catch (Exception e)
+        {
+            Litematica.LOGGER.warn("TeamSync: could not save own share list: {}", e.toString());
+        }
+    }
+
+    /** After a relog Litematica restores the placements: pick up the ones that were shared before. */
+    private static void restoreOwnShares()
+    {
+        if (ownIds().isEmpty() || !serverSupportsSync())
+        {
+            return;
+        }
+
+        for (SchematicPlacement placement : DataManager.getSchematicPlacementManager().getAllSchematicsPlacements())
+        {
+            if (OWN.containsKey(placement) || RECEIVED.containsValue(placement))
+            {
+                continue;
+            }
+
+            UUID id = ownIds().get(ownKey(placement));
+
+            if (id != null)
+            {
+                OwnShare state = OwnShare.of(id, placement);
+                OWN.put(placement, state);
+                sendMove(state);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ persisted "accepted" ids
+
+    private static java.util.Set<UUID> acceptedIds;
+
+    private static Path acceptedFile()
+    {
+        return net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("forgematica-team-accepted.txt");
+    }
+
+    private static java.util.Set<UUID> accepted()
+    {
+        if (acceptedIds == null)
+        {
+            acceptedIds = new java.util.LinkedHashSet<>();
+
+            try
+            {
+                if (Files.exists(acceptedFile()))
+                {
+                    for (String line : Files.readAllLines(acceptedFile()))
+                    {
+                        try { acceptedIds.add(UUID.fromString(line.trim())); } catch (IllegalArgumentException ignored) {}
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Litematica.LOGGER.warn("TeamSync: could not read accepted list: {}", e.toString());
+            }
+        }
+
+        return acceptedIds;
+    }
+
+    private static boolean isAcceptedBefore(UUID id)
+    {
+        return accepted().contains(id);
+    }
+
+    private static void rememberAccepted(UUID id)
+    {
+        if (accepted().add(id))
+        {
+            try
+            {
+                java.util.List<String> lines = new java.util.ArrayList<>();
+                // keep the file small
+                java.util.List<UUID> all = new java.util.ArrayList<>(accepted());
+                for (UUID u : all.subList(Math.max(0, all.size() - 500), all.size())) lines.add(u.toString());
+                Files.write(acceptedFile(), lines);
+            }
+            catch (Exception e)
+            {
+                Litematica.LOGGER.warn("TeamSync: could not save accepted list: {}", e.toString());
+            }
+        }
+    }
+
+    private static void forgetAccepted(UUID id)
+    {
+        if (accepted().remove(id))
+        {
+            try
+            {
+                java.util.List<String> lines = new java.util.ArrayList<>();
+                for (UUID u : accepted()) lines.add(u.toString());
+                Files.write(acceptedFile(), lines);
+            }
+            catch (Exception ignored)
+            {
+            }
+        }
     }
 
     private static void receiveMove(TeamSyncPayload p)
     {
+        Offer offer = OFFERS.get(p.shareId());
+
+        if (offer != null)
+        {
+            offer.x = p.x(); offer.y = p.y(); offer.z = p.z();
+            offer.rotation = p.rotation(); offer.mirror = p.mirror();
+        }
+
         SchematicPlacement placement = RECEIVED.get(p.shareId());
 
         if (placement != null)
         {
-            placement.setOrigin(new BlockPos(p.x(), p.y(), p.z()), s -> {});
-            applyTransform(placement, p);
+            team.cagayakegirls.forgematica.ux.MoveMode.withUnlocked(placement, () -> {
+                placement.setOrigin(new BlockPos(p.x(), p.y(), p.z()), s -> {});
+                applyTransform(placement, p.rotation(), p.mirror());
+            });
         }
     }
 
     private static void receiveRemove(TeamSyncPayload p)
     {
+        Offer offer = OFFERS.remove(p.shareId());
         SchematicPlacement placement = RECEIVED.remove(p.shareId());
         TRANSFERS.remove(p.shareId());
+        forgetAccepted(p.shareId());
 
         if (placement != null)
         {
             DataManager.getSchematicPlacementManager().removeSchematicPlacement(placement);
             SchematicCommand.info(p.sender() + " teilt \"" + placement.getName() + "\" nicht mehr.");
         }
+        else if (offer != null)
+        {
+            SchematicCommand.info(p.sender() + " hat das Angebot \"" + offer.fileName + "\" zurückgezogen.");
+        }
     }
 
-    private static void applyTransform(SchematicPlacement placement, TeamSyncPayload p)
+    private static void applyTransform(SchematicPlacement placement, byte rotation, byte mirror)
     {
         Rotation[] rotations = Rotation.values();
         Mirror[] mirrors = Mirror.values();
 
-        if (p.rotation() >= 0 && p.rotation() < rotations.length)
+        if (rotation >= 0 && rotation < rotations.length)
         {
-            placement.setRotation(rotations[p.rotation()], NO_FEEDBACK);
+            placement.setRotation(rotations[rotation], NO_FEEDBACK);
         }
 
-        if (p.mirror() >= 0 && p.mirror() < mirrors.length)
+        if (mirror >= 0 && mirror < mirrors.length)
         {
-            placement.setMirror(mirrors[p.mirror()], NO_FEEDBACK);
+            placement.setMirror(mirrors[mirror], NO_FEEDBACK);
         }
     }
 
@@ -413,6 +729,22 @@ public final class TeamSyncClient
         boolean samePlacement(OwnShare o)
         {
             return this.origin.equals(o.origin) && this.rotation == o.rotation && this.mirror == o.mirror;
+        }
+    }
+
+    public static final class Offer
+    {
+        public final UUID id;
+        public final String sender;
+        public final String fileName;
+        final Path file;
+        public int x, y, z;
+        byte rotation, mirror;
+
+        Offer(UUID id, String sender, String fileName, Path file, int x, int y, int z, byte rotation, byte mirror)
+        {
+            this.id = id; this.sender = sender; this.fileName = fileName; this.file = file;
+            this.x = x; this.y = y; this.z = z; this.rotation = rotation; this.mirror = mirror;
         }
     }
 

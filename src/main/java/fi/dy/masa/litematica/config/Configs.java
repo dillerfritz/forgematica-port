@@ -254,7 +254,7 @@ public class Configs implements IConfigHandler
         public static final ConfigBooleanHotkeyed ENABLE_SCHEMATIC_ENTITY_HITBOXES  = new ConfigBooleanHotkeyed("enableSchematicEntityHitboxes", true, "").apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed ENABLE_SCHEMATIC_FAKE_LIGHTING    = new ConfigBooleanHotkeyed("enableSchematicFakeLighting", true, "").apply(VISUALS_KEY);
         //public static final ConfigInteger       RENDER_SCHEMATIC_MAX_THREADS        = new ConfigInteger("renderSchematicMaxThreads", 4, 1, 16).apply(VISUALS_KEY);
-        public static final ConfigDouble        GHOST_BLOCK_ALPHA                   = new ConfigDouble( "ghostBlockAlpha", 0.5, 0, 1).apply(VISUALS_KEY);
+        public static final ConfigDouble        GHOST_BLOCK_ALPHA                   = new ConfigDouble( "ghostBlockAlpha", 0.6, 0, 1).apply(VISUALS_KEY);
         public static final ConfigBoolean       IGNORE_EXISTING_FLUIDS              = new ConfigBoolean("ignoreExistingFluids", false).apply(VISUALS_KEY);
         public static final ConfigBoolean       IGNORE_EXISTING_BLOCKS              = new ConfigBoolean("ignoreExistingBlocks", false).apply(VISUALS_KEY);
         public static final ConfigStringList    IGNORABLE_EXISTING_BLOCKS           = new ConfigStringList("ignorableExistingBlocks", ImmutableList.of()).apply(VISUALS_KEY);
@@ -263,7 +263,7 @@ public class Configs implements IConfigHandler
         public static final ConfigDouble        PLACEMENT_BOX_SIDE_ALPHA            = new ConfigDouble( "placementBoxSideAlpha", 0.2, 0, 1).apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed RENDER_AO_MODERN_ENABLE           = new ConfigBooleanHotkeyed("renderAOModernEnable", false, "").apply(VISUALS_KEY);
         public static final ConfigBoolean       RENDER_AREA_SELECTION_BOX_SIDES     = new ConfigBoolean("renderAreaSelectionBoxSides", true).apply(VISUALS_KEY);
-        public static final ConfigBooleanHotkeyed RENDER_BLOCKS_AS_TRANSLUCENT      = new ConfigBooleanHotkeyed("renderBlocksAsTranslucent", false, "").apply(VISUALS_KEY);
+        public static final ConfigBooleanHotkeyed RENDER_BLOCKS_AS_TRANSLUCENT      = new ConfigBooleanHotkeyed("renderBlocksAsTranslucent", true, "").apply(VISUALS_KEY);
         public static final ConfigBoolean       RENDER_ENABLE_TRANSLUCENT_RESORTING = new ConfigBoolean("renderEnableTranslucentResorting",  true).apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed RENDER_COLLIDING_SCHEMATIC_BLOCKS = new ConfigBooleanHotkeyed("renderCollidingSchematicBlocks", false, "").apply(VISUALS_KEY);
         public static final ConfigBoolean       RENDER_ERROR_MARKER_CONNECTIONS     = new ConfigBoolean("renderErrorMarkerConnections", false).apply(VISUALS_KEY);
@@ -285,7 +285,7 @@ public class Configs implements IConfigHandler
         public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_RENDER_THROUGH    = new ConfigBooleanHotkeyed("schematicOverlayRenderThroughBlocks", false, "").apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_DIFF_BLOCK   = new ConfigBooleanHotkeyed("schematicOverlayTypeDiffBlock",   true, "").apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_EXTRA        = new ConfigBooleanHotkeyed("schematicOverlayTypeExtra",       true, "").apply(VISUALS_KEY);
-        public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_MISSING      = new ConfigBooleanHotkeyed("schematicOverlayTypeMissing",     true, "").apply(VISUALS_KEY);
+        public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_MISSING      = new ConfigBooleanHotkeyed("schematicOverlayTypeMissing",     false, "").apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_WRONG_BLOCK  = new ConfigBooleanHotkeyed("schematicOverlayTypeWrongBlock",  true, "").apply(VISUALS_KEY);
         public static final ConfigBooleanHotkeyed SCHEMATIC_OVERLAY_TYPE_WRONG_STATE  = new ConfigBooleanHotkeyed("schematicOverlayTypeWrongState",  true, "").apply(VISUALS_KEY);
 //        public static final ConfigBoolean       SCHEMATIC_VERIFIER_BLOCK_MODELS     = new ConfigBoolean("schematicVerifierUseBlockModels", false).apply(VISUALS_KEY);
@@ -447,8 +447,8 @@ public class Configs implements IConfigHandler
         public static final ConfigColor REBUILD_REPLACE_OVERLAY_COLOR       = new ConfigColor("schematicRebuildReplaceOverlayColor","#4CF0A010").apply(COLORS_KEY);
         public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_DIFF_BLOCK  = new ConfigColor("schematicOverlayColorDiffBlock",     "#30F8D650").apply(COLORS_KEY);
         public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_EXTRA       = new ConfigColor("schematicOverlayColorExtra",         "#4CFF4CE6").apply(COLORS_KEY);
-        public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_MISSING     = new ConfigColor("schematicOverlayColorMissing",       "#2C33B3E6").apply(COLORS_KEY);
-        public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_WRONG_BLOCK = new ConfigColor("schematicOverlayColorWrongBlock",    "#4CFF3333").apply(COLORS_KEY);
+        public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_MISSING     = new ConfigColor("schematicOverlayColorMissing",       "#40FFFFFF").apply(COLORS_KEY);
+        public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_WRONG_BLOCK = new ConfigColor("schematicOverlayColorWrongBlock",    "#66FF2020").apply(COLORS_KEY);
         public static final ConfigColor SCHEMATIC_OVERLAY_COLOR_WRONG_STATE = new ConfigColor("schematicOverlayColorWrongState",    "#4CFF9010").apply(COLORS_KEY);
 
         public static final ImmutableList<IConfigBase> OPTIONS = ImmutableList.of(

@@ -165,7 +165,14 @@ public class MaterialListHudRenderer implements IInfoHudRenderer
             y += lineHeight;
         }
 
-        String title = GuiBase.TXT_BOLD + StringUtils.translate("litematica.gui.button.material_list") + GuiBase.TXT_RST;
+        long sumTotal = 0, sumMissing = 0;
+        for (MaterialListEntry e : this.materialList.getMaterialsAll())
+        {
+            sumTotal += e.getCountTotal();
+            sumMissing += Math.max(0, e.getCountMissing());
+        }
+        int percent = sumTotal > 0 ? (int) Math.floor(100.0 * (sumTotal - sumMissing) / sumTotal) : 0;
+        String title = GuiBase.TXT_BOLD + "Material" + GuiBase.TXT_RST + GuiBase.TXT_GRAY + "  " + percent + " % fertig" + GuiBase.TXT_RST;
 
 		ctx.drawString(font, title, posX + 2, posY + 2, textColor, useShadow);
 
