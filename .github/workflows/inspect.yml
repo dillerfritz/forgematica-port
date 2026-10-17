@@ -1,0 +1,31 @@
+name: inspect
+on:
+  push:
+    branches: [ inspect ]
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/checkout@v4
+        with: { repository: CagayakeGirls/malilib-neoforge, ref: c4a6e202c22e25f386e94d2adfd3b090a288be31, path: mafglib }
+      - run: cd mafglib && chmod +x gradlew && ./gradlew publishToMavenLocal -q
+      - run: chmod +x gradlew && ./gradlew compileJava -q || true
+      - name: javap
+        run: |
+          mkdir -p /tmp/out
+          JAR=""
+          for j in $(find ~/.gradle $GITHUB_WORKSPACE/.gradle $GITHUB_WORKSPACE/build -name '*.jar' 2>/dev/null); do
+            if unzip -l "$j" 2>/dev/null | grep -q 'net/minecraft/client/KeyMapping.class'; then JAR="$j"; echo "$j" >> /tmp/out/jars.txt; fi
+          done
+          JAR=$(head -1 /tmp/out/jars.txt)
+          for c in com.mojang.blaze3d.platform.InputConstants 'com.mojang.blaze3d.platform.InputConstants$Type' 'com.mojang.blaze3d.platform.InputConstants$Key' net.minecraft.client.KeyMapping 'net.minecraft.client.KeyMapping$Category' net.minecraft.client.Options net.minecraft.client.Minecraft net.minecraft.client.gui.components.AbstractSliderButton net.minecraft.client.gui.components.Button net.minecraft.client.gui.screens.Screen net.minecraft.network.chat.ClickEvent 'net.minecraft.network.chat.ClickEvent$RunCommand' net.minecraft.network.chat.HoverEvent net.minecraft.network.chat.Style net.minecraft.world.level.block.Rotation net.minecraft.client.player.LocalPlayer net.minecraft.world.entity.Entity net.minecraft.client.multiplayer.ClientPacketListener; do
+            echo "=== $c" >> /tmp/out/javap.txt
+            javap -cp "$JAR" -public "$c" >> /tmp/out/javap.txt 2>&1 || true
+          done
+          cd /tmp/out && git init -q -b inspect-out && git config user.name ci && git config user.email ci@users.noreply.github.com && git add -A && git commit -qm out && git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" inspect-out
