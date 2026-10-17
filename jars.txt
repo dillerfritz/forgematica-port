@@ -1,0 +1,7 @@
+/home/runner/.gradle/caches/fabric-loom/26.3/neoforge/26.3.0.26-beta/minecraft-merged-official-patched.jar
+/home/runner/.gradle/caches/fabric-loom/26.3/neoforge/26.3.0.26-beta/minecraft-merged-official.jar
+/home/runner/.gradle/caches/fabric-loom/26.3/neoforge/26.3.0.26-beta/minecraft-merged-patched.jar
+/home/runner/.gradle/caches/fabric-loom/26.3/neoforge/26.3.0.26-beta/minecraft-merged-official-at-patched.jar
+/home/runner/.gradle/caches/fabric-loom/26.3/minecraft-client.jar
+/home/runner/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/neoforge-26.3.0.26-beta-minecraft-merged-deobf/26.3/neoforge-26.3.0.26-beta-minecraft-merged-deobf-26.3.jar
+/home/runner/work/forgematica-port/forgematica-port/.gradle/loom-cache/minecraftMaven/net/minecraft/neoforge-26.3.0.26-beta-minecraft-merged-85d0b7c14d/26.3/neoforge-26.3.0.26-beta-minecraft-merged-85d0b7c14d-26.3.jar
