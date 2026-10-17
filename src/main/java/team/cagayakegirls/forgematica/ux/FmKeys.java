@@ -64,7 +64,7 @@ public final class FmKeys
     {
         Minecraft mc = Minecraft.getInstance();
 
-        if (mc.player == null || mc.screen != null)
+        if (mc.player == null || mc.gui.screen() != null)
         {
             MoveMode.tickNoInput();
             return;
