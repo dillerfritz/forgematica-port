@@ -130,6 +130,65 @@ public final class MoveMode
         active = null;
     }
 
+    /**
+     * Rotates by 90° around the middle of the schematic (Litematica itself rotates around the corner,
+     * which makes the build jump away).
+     */
+    public static void rotateAroundCenter(SchematicPlacement placement, Rotation delta)
+    {
+        fi.dy.masa.litematica.selection.Box before = placement.getEclosingBox();
+        BlockPos c1 = before != null ? center(before) : null;
+
+        placement.setRotation(placement.getRotation().getRotated(delta), SILENT);
+
+        fi.dy.masa.litematica.selection.Box after = placement.getEclosingBox();
+
+        if (c1 != null && after != null)
+        {
+            BlockPos c2 = center(after);
+            placement.setOrigin(placement.getOrigin().offset(c1.getX() - c2.getX(), 0, c1.getZ() - c2.getZ()), s -> {});
+        }
+    }
+
+    /** Rotate the selected own schematic (menu / command), also when it is locked. */
+    public static void rotateSelected(Rotation delta)
+    {
+        SchematicPlacement placement = DataManager.getSchematicPlacementManager().getSelectedSchematicPlacement();
+
+        if (placement == null)
+        {
+            SchematicCommand.error("Keine Schematic ausgewählt.");
+            return;
+        }
+
+        if (TeamSyncClient.isReceived(placement))
+        {
+            SchematicCommand.error("Diese Schematic gehört einem Teammitglied – nur der Besitzer kann sie drehen.");
+            return;
+        }
+
+        withUnlocked(placement, () -> rotateAroundCenter(placement, delta));
+        msgBar(Component.literal("Gedreht ↻ " + rotationLabel(placement.getRotation())).withStyle(ChatFormatting.GOLD));
+    }
+
+    private static String rotationLabel(Rotation r)
+    {
+        return switch (r)
+        {
+            case NONE -> "0°";
+            case CLOCKWISE_90 -> "90°";
+            case CLOCKWISE_180 -> "180°";
+            case COUNTERCLOCKWISE_90 -> "270°";
+        };
+    }
+
+    private static BlockPos center(fi.dy.masa.litematica.selection.Box box)
+    {
+        BlockPos a = box.getPos1();
+        BlockPos b = box.getPos2();
+        return new BlockPos(Math.floorDiv(a.getX() + b.getX(), 2), Math.floorDiv(a.getY() + b.getY(), 2), Math.floorDiv(a.getZ() + b.getZ(), 2));
+    }
+
     /** Lock state helper (Litematica only has toggleLocked). */
     public static void setLocked(SchematicPlacement placement, boolean locked)
     {
@@ -159,7 +218,7 @@ public final class MoveMode
     {
         for (KeyMapping key : REPEAT_KEYS) while (key.consumeClick()) {}
         for (int i = 0; i < HELD.length; i++) HELD[i] = 0;
-        drain(FmKeys.ROTATE, FmKeys.MIRROR, FmKeys.CONFIRM, FmKeys.CANCEL);
+        drain(FmKeys.ROTATE, FmKeys.ROTATE_LEFT, FmKeys.MIRROR, FmKeys.CONFIRM, FmKeys.CANCEL);
     }
 
     static void tick()
@@ -218,9 +277,15 @@ public final class MoveMode
             }
         }
 
+        while (FmKeys.ROTATE_LEFT.consumeClick())
+        {
+            rotateAroundCenter(active, Rotation.COUNTERCLOCKWISE_90);
+            drain(FmKeys.ROTATE);
+        }
+
         while (FmKeys.ROTATE.consumeClick())
         {
-            active.setRotation(active.getRotation().getRotated(Rotation.CLOCKWISE_90), SILENT);
+            rotateAroundCenter(active, fi.dy.masa.malilib.gui.GuiBase.isShiftDown() ? Rotation.COUNTERCLOCKWISE_90 : Rotation.CLOCKWISE_90);
         }
 
         while (FmKeys.MIRROR.consumeClick())
@@ -259,7 +324,7 @@ public final class MoveMode
         msgBar(Component.literal("Verschieben: ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(key(FmKeys.MOVE_FORWARD) + key(FmKeys.MOVE_BACK) + key(FmKeys.MOVE_LEFT) + key(FmKeys.MOVE_RIGHT)
                         + " bewegen · " + key(FmKeys.MOVE_UP) + "/" + key(FmKeys.MOVE_DOWN) + " hoch/runter · "
-                        + key(FmKeys.ROTATE) + " drehen · " + key(FmKeys.MOVE_FAST) + " halten = 10er · " + key(FmKeys.CONFIRM) + " fertig · " + key(FmKeys.CANCEL) + " abbrechen"
+                        + key(FmKeys.ROTATE) + " drehen (Shift+" + key(FmKeys.ROTATE) + " links) · " + key(FmKeys.MOVE_FAST) + " halten = 10er · " + key(FmKeys.CONFIRM) + " fertig · " + key(FmKeys.CANCEL) + " abbrechen"
                         + "  [" + o.getX() + " " + o.getY() + " " + o.getZ() + "]").withStyle(ChatFormatting.WHITE)));
     }
 

@@ -13,9 +13,10 @@
   "key.forgematica.move_right": "Verschieben: rechts",
   "key.forgematica.move_up": "Verschieben: hoch",
   "key.forgematica.move_down": "Verschieben: runter",
-  "key.forgematica.rotate": "Verschieben: drehen",
+  "key.forgematica.rotate": "Verschieben: rechts drehen",
   "key.forgematica.mirror": "Verschieben: spiegeln",
   "key.forgematica.confirm": "Verschieben: fertig",
   "key.forgematica.cancel": "Verschieben: abbrechen",
-  "key.forgematica.move_fast": "Verschieben: 10er-Schritte (halten)"
+  "key.forgematica.move_fast": "Verschieben: 10er-Schritte (halten)",
+  "key.forgematica.rotate_left": "Verschieben: links drehen"
 }

@@ -68,6 +68,14 @@ public class SimpleMenu extends GuiBase
         this.addButton(mat, (btn, mb) -> { SchematicCommand.toggleMaterialList(false); this.initGui(); });
         y += 24;
 
+        ButtonGeneric rotL = new ButtonGeneric(x, y, half, 20, "⟲ Links drehen", "Um 90° gegen den Uhrzeigersinn drehen (um die Mitte)");
+        rotL.setEnabled(hasSel && !received);
+        this.addButton(rotL, (btn, mb) -> MoveMode.rotateSelected(net.minecraft.world.level.block.Rotation.COUNTERCLOCKWISE_90));
+        ButtonGeneric rotR = new ButtonGeneric(x + half + 4, y, half, 20, "Rechts drehen ⟳", "Um 90° im Uhrzeigersinn drehen (um die Mitte)");
+        rotR.setEnabled(hasSel && !received);
+        this.addButton(rotR, (btn, mb) -> MoveMode.rotateSelected(net.minecraft.world.level.block.Rotation.CLOCKWISE_90));
+        y += 24;
+
         if (received)
         {
             this.addButton(new ButtonGeneric(x, y, half, 20, "Ausblenden",

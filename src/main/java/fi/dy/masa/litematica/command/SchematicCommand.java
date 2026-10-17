@@ -80,6 +80,10 @@ public class SchematicCommand
                 .then(Commands.literal("share").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.shareSelected()))
                 .then(Commands.literal("accept").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.acceptAll()))
                 .then(Commands.literal("decline").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.declineAll()))
+                .then(Commands.literal("rotate")
+                        .executes(ctx -> { team.cagayakegirls.forgematica.ux.MoveMode.rotateSelected(net.minecraft.world.level.block.Rotation.CLOCKWISE_90); return 1; })
+                        .then(Commands.literal("right").executes(ctx -> { team.cagayakegirls.forgematica.ux.MoveMode.rotateSelected(net.minecraft.world.level.block.Rotation.CLOCKWISE_90); return 1; }))
+                        .then(Commands.literal("left").executes(ctx -> { team.cagayakegirls.forgematica.ux.MoveMode.rotateSelected(net.minecraft.world.level.block.Rotation.COUNTERCLOCKWISE_90); return 1; })))
                 .then(Commands.literal("move").executes(ctx -> { team.cagayakegirls.forgematica.ux.MoveMode.toggle(); return 1; }))
                 .then(Commands.literal("menu").executes(ctx -> { Minecraft.getInstance().execute(() -> fi.dy.masa.malilib.gui.GuiBase.openGui(new team.cagayakegirls.forgematica.ux.SimpleMenu())); return 1; }))
                 .then(Commands.literal("unshare").executes(ctx -> team.cagayakegirls.forgematica.teamsync.TeamSyncClient.unshareSelected()))
@@ -112,6 +116,8 @@ public class SchematicCommand
                 .append(Component.literal(" - ausgewählte Schematic (erneut) mit deinem Team teilen").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic accept | decline").withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - alle Team-Angebote annehmen / ablehnen").withStyle(ChatFormatting.GRAY)));
+        msg(Component.literal("/schematic rotate [left|right]").withStyle(ChatFormatting.YELLOW)
+                .append(Component.literal(" - ausgewählte Schematic um 90° drehen").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic move").withStyle(ChatFormatting.YELLOW)
                 .append(Component.literal(" - ausgewählte Schematic verschieben (wie Taste)").withStyle(ChatFormatting.GRAY)));
         msg(Component.literal("/schematic unshare").withStyle(ChatFormatting.YELLOW)

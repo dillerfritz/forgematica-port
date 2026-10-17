@@ -37,10 +37,11 @@ public final class FmKeys
     public static final KeyMapping CONFIRM          = key("confirm",          InputConstants.KEY_RETURN);
     public static final KeyMapping CANCEL           = key("cancel",           InputConstants.KEY_BACKSPACE);
     public static final KeyMapping MOVE_FAST        = key("move_fast",        InputConstants.KEY_LALT);
+    public static final KeyMapping ROTATE_LEFT      = key("rotate_left",      InputConstants.UNKNOWN.getValue());
 
     private static final KeyMapping[] ALL = {
             OPEN_MENU, MATERIAL_LIST, MOVE_MODE, TOGGLE_RENDERING,
-            MOVE_FORWARD, MOVE_BACK, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, ROTATE, MIRROR, CONFIRM, CANCEL, MOVE_FAST
+            MOVE_FORWARD, MOVE_BACK, MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN, ROTATE, MIRROR, CONFIRM, CANCEL, MOVE_FAST, ROTATE_LEFT
     };
 
     private FmKeys() {}
