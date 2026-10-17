@@ -179,7 +179,8 @@ public final class MoveMode
 
         Minecraft mc = Minecraft.getInstance();
         Direction facing = mc.player.getDirection();
-        int step = mc.options.keySprint.isDown() ? 10 : 1;
+        // 1 block per press; 10 only while the dedicated fast key is held (not the sprint key, which may be toggled on)
+        int step = FmKeys.MOVE_FAST.isDown() ? 10 : 1;
 
         Direction[] dirs = {
                 facing, facing.getOpposite(), facing.getCounterClockWise(), facing.getClockWise(), Direction.UP, Direction.DOWN
@@ -199,8 +200,8 @@ public final class MoveMode
             {
                 HELD[i]++;
 
-                // Auto-repeat after holding ~0.4 s, then every 2 ticks
-                if (presses == 0 && HELD[i] > 8 && HELD[i] % 2 == 0)
+                // Auto-repeat after holding ~0.5 s, then every 3 ticks
+                if (presses == 0 && HELD[i] > 10 && HELD[i] % 3 == 0)
                 {
                     presses = 1;
                 }
@@ -258,7 +259,7 @@ public final class MoveMode
         msgBar(Component.literal("Verschieben: ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(key(FmKeys.MOVE_FORWARD) + key(FmKeys.MOVE_BACK) + key(FmKeys.MOVE_LEFT) + key(FmKeys.MOVE_RIGHT)
                         + " bewegen · " + key(FmKeys.MOVE_UP) + "/" + key(FmKeys.MOVE_DOWN) + " hoch/runter · "
-                        + key(FmKeys.ROTATE) + " drehen · " + key(FmKeys.CONFIRM) + " fertig · " + key(FmKeys.CANCEL) + " abbrechen"
+                        + key(FmKeys.ROTATE) + " drehen · " + key(FmKeys.MOVE_FAST) + " halten = 10er · " + key(FmKeys.CONFIRM) + " fertig · " + key(FmKeys.CANCEL) + " abbrechen"
                         + "  [" + o.getX() + " " + o.getY() + " " + o.getZ() + "]").withStyle(ChatFormatting.WHITE)));
     }
 

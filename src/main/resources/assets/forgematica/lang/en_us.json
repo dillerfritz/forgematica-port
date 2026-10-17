@@ -16,5 +16,6 @@
   "key.forgematica.rotate": "Move: rotate",
   "key.forgematica.mirror": "Move: mirror",
   "key.forgematica.confirm": "Move: done",
-  "key.forgematica.cancel": "Move: cancel"
+  "key.forgematica.cancel": "Move: cancel",
+  "key.forgematica.move_fast": "Move: 10-block steps (hold)"
 }

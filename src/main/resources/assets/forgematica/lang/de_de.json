@@ -16,5 +16,6 @@
   "key.forgematica.rotate": "Verschieben: drehen",
   "key.forgematica.mirror": "Verschieben: spiegeln",
   "key.forgematica.confirm": "Verschieben: fertig",
-  "key.forgematica.cancel": "Verschieben: abbrechen"
+  "key.forgematica.cancel": "Verschieben: abbrechen",
+  "key.forgematica.move_fast": "Verschieben: 10er-Schritte (halten)"
 }
